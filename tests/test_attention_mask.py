@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import mlx.core as mx
+import pytest
 
 from gpt2_mlx.config import GPTConfig
 from gpt2_mlx.model import CausalSelfAttention
 
 
+@pytest.mark.todo
 def test_causal_mask_contract() -> None:
     """A causal mask should allow current/past positions and block future ones."""
     config = GPTConfig.tiny()
