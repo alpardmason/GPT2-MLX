@@ -129,9 +129,14 @@ class Block(nn.Module):
     def __init__(self, config: GPTConfig) -> None:
         super().__init__()
         self.config = config
-        self.ln_1 = nn.LayerNorm(config.n_embd, affine=config.bias)
+        # previously: nn.LayerNorm(config.n_embd, affine=config.bias)
+        # That conflated the learnable scale with bias: affine=False drops BOTH
+        # the scale (gamma) and bias (beta). GPT-2 always keeps the learnable
+        # scale and only optionally drops bias, so toggle bias alone here.
+        self.ln_1 = nn.LayerNorm(config.n_embd, bias=config.bias)
         self.attn = CausalSelfAttention(config)
-        self.ln_2 = nn.LayerNorm(config.n_embd, affine=config.bias)
+        # previously: nn.LayerNorm(config.n_embd, affine=config.bias)
+        self.ln_2 = nn.LayerNorm(config.n_embd, bias=config.bias)
         self.mlp = MLP(config)
 
     def __call__(self, x: mx.array) -> mx.array:
@@ -171,7 +176,9 @@ class GPT(nn.Module):
         self.token_embedding = nn.Embedding(config.vocab_size, config.n_embd)
         self.position_embedding = nn.Embedding(config.block_size, config.n_embd)
         self.blocks = [Block(config) for _ in range(config.n_layer)]
-        self.ln_f = nn.LayerNorm(config.n_embd, affine=config.bias)
+        # previously: nn.LayerNorm(config.n_embd, affine=config.bias)
+        # Keep the learnable scale; only the bias term is configurable.
+        self.ln_f = nn.LayerNorm(config.n_embd, bias=config.bias)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
     def __call__(self, idx: mx.array) -> mx.array:

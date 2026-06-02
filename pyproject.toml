@@ -13,11 +13,22 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "ruff>=0.11.0",
+    "pyright>=1.1.390",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "todo: intentionally-red contract test for a learner TODO (excluded from CI gate)",
+]
+
+[tool.pyright]
+include = ["gpt2_mlx", "tests"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+# MLX does not ship type stubs; do not fail the type check on that alone.
+reportMissingTypeStubs = false
 
 [tool.ruff]
 line-length = 88

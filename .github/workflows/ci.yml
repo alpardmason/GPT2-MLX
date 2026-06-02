@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, skeleton]
+  pull_request:
+    branches: [main, skeleton]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Type check
+        run: uv run pyright
+
+      # The TODO contract tests are intentionally red on the learning skeleton,
+      # so the CI gate runs only the scaffold/infra tests. Run the full suite
+      # locally (`uv run pytest`) to see the learning targets.
+      - name: Test (scaffold gate)
+        run: uv run pytest -m "not todo"
