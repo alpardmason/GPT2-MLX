@@ -36,9 +36,14 @@ gpt2_mlx/
   generate.py    # generation CLI skeleton
   utils.py       # small non-core helpers
 tests/
-  test_shapes.py
-  test_attention_mask.py
-  test_generation.py
+  test_shapes.py           # config, construction, and shape contracts
+  test_attention_mask.py   # causal mask contract
+  test_causal_behavior.py  # no-future-leakage behavioral contracts
+  test_generation.py       # autoregressive generation contracts
+  test_loss.py             # next-token loss sanity contract
+  test_utils.py            # non-core helper tests
+.github/
+  workflows/ci.yml         # lint, type check, scaffold-gated tests
 ```
 
 ## Setup
@@ -54,11 +59,22 @@ uv run pytest
 ```
 
 Some tests are expected to fail initially. They describe the contracts you need
-to satisfy as you implement each conceptual TODO.
+to satisfy as you implement each conceptual TODO. These intentionally-red tests
+carry the `todo` marker, so you can run just the scaffold/infra tests (the same
+subset CI gates on) with:
 
-You can also run linting with:
+```bash
+uv run pytest -m "not todo"
+```
+
+As you implement each concept, its `todo`-marked tests should turn green.
+
+## Linting and Type Checking
 
 ```bash
 uv run ruff check .
+uv run pyright
 ```
 
+Continuous integration (`.github/workflows/ci.yml`) runs linting, type checking,
+and `pytest -m "not todo"` on pushes and pull requests to `main` and `skeleton`.
