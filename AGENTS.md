@@ -23,7 +23,10 @@ Core learning tasks intentionally left to the user:
 - optional weight tying in a later pass
 
 Do not treat failing TODO tests as regressions. Several tests are intentionally
-red until the learner implements the corresponding concepts.
+red until the learner implements the corresponding concepts. These tests carry
+the `@pytest.mark.todo` marker so CI can gate on the scaffold subset
+(`pytest -m "not todo"`) while the default `uv run pytest` still shows the red
+learning targets.
 
 ## Tech Stack and Environment
 
@@ -32,7 +35,10 @@ red until the learner implements the corresponding concepts.
 - `uv` for environment and dependency management
 - `pytest` for tests
 - `ruff` for linting and import checks
+- `pyright` for static type checking
 - `pyproject.toml` for project configuration
+- GitHub Actions CI (`.github/workflows/ci.yml`): lint, type check, and a
+  scaffold-gated test step
 
 Use `pathlib.Path` for path handling in new Python code. Keep public functions
 and methods fully type annotated.
@@ -54,10 +60,26 @@ uv run pytest
 Expected current result: some tests fail with `NotImplementedError` because
 they are contract tests for learner-owned TODOs.
 
+Run only the scaffold/infra tests (the gate used by CI), excluding the
+intentionally-red learner TODO tests:
+
+```bash
+uv run pytest -m "not todo"
+```
+
+Expected current result: green. These tests cover configuration, data helpers,
+construction, scaffold correctness (e.g. LayerNorm scale), and small utilities.
+
 Run linting:
 
 ```bash
 uv run ruff check .
+```
+
+Run type checking:
+
+```bash
+uv run pyright
 ```
 
 Run a specific test file:
@@ -223,6 +245,12 @@ Useful production-bridge topics to reference when relevant:
 - Reshaping heads in a way that swaps time and head dimensions.
 - Forgetting to combine heads back to `[B, T, C]`.
 - Applying the LM head to the wrong tensor shape.
+- Conflating LayerNorm's learnable scale with its bias. In
+  `mlx.nn.LayerNorm(dims, eps, affine, bias)`, `affine` toggles BOTH the scale
+  (gamma) and bias (beta) together, while `bias` toggles only the bias. Use
+  `nn.LayerNorm(n_embd, bias=config.bias)` so the learnable scale is always kept
+  and only bias is configurable, matching GPT-2. Writing `affine=config.bias`
+  silently drops the scale when `bias=False`.
 - Passing sequences longer than `block_size` without a clear policy.
 - Implementing generation that repeatedly feeds uncropped contexts past
   `block_size`.
@@ -245,3 +273,29 @@ Useful production-bridge topics to reference when relevant:
   Alternatives considered: adding future compatibility hooks immediately.
   Rationale: Those features add surface area before the core architecture is
   understood.
+
+- Decision: Gate CI with a `todo` pytest marker instead of `xfail`.
+  Context: The suite is intentionally red on the skeleton, but CI needs a
+  meaningful green signal for scaffold/infra correctness.
+  Alternatives considered: converting TODO tests to `xfail`; running the full
+  suite with `continue-on-error`; skipping CI entirely.
+  Rationale: A `todo` marker lets CI gate on `pytest -m "not todo"` while the
+  default `uv run pytest` stays fully red, preserving the existing "red tests
+  make learning targets visible" decision (which explicitly rejected `xfail`).
+
+- Decision: Add `pyright` as a third CI step (lint, type check, test).
+  Context: The project standards call for type checking as a distinct CI step,
+  and public functions are fully type annotated.
+  Alternatives considered: `mypy`; no type checker.
+  Rationale: `pyright` is fast and integrates well locally; `typeCheckingMode`
+  is `basic` and `reportMissingTypeStubs` is disabled because MLX ships no stubs,
+  so the check is useful without being noisy.
+
+- Decision: Add behavioral causal-flow contract tests (e.g. no-future-leakage)
+  in addition to shape contracts.
+  Context: Shape-only tests pass even for leaky/bidirectional attention or a
+  fake scalar loss.
+  Alternatives considered: relying on shape tests alone.
+  Rationale: Behavioral tests assert the property that actually matters and fail
+  loudly on the classic mistakes in the pitfalls list. They remain contract
+  tests (initially red, `todo`-marked), not reference implementations.
