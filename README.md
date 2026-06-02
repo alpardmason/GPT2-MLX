@@ -8,6 +8,21 @@ implementation. The package includes class definitions, method signatures, shape
 contracts, docstrings, and tests. The important GPT-2 logic is intentionally left
 as larger conceptual TODOs.
 
+## Branches
+
+If you are using this project as a learner, start from the `skeleton` branch.
+It contains the course-project scaffold with intentionally unfinished GPT-2
+implementation tasks.
+
+```bash
+git clone <repo-url>
+cd GPT2-MLX
+git switch skeleton
+```
+
+The `main` branch is where the project owner may continue their own learning
+implementation. Use `skeleton` when you want the clean starting point.
+
 ## What Is Intentionally Missing
 
 You should implement these pieces yourself:
@@ -61,4 +76,3 @@ You can also run linting with:
 ```bash
 uv run ruff check .
 ```
-
